@@ -80,7 +80,7 @@ func AddHost(ipStr, macStr, comment string) error {
 	return nil
 }
 
-// ExpireHosts will delete hosts that are older than the time _since_.
+// ExpireHosts will delete hosts that are older than the time _since_ from the arpCache.
 func ExpireHosts(since time.Time) {
 	for key, host := range arpCache {
 		if host.Timestamp.Before(since) {
@@ -93,15 +93,4 @@ func ExpireHosts(since time.Time) {
 // DeleteHost deletes a specific host
 func DeleteHost(ipStr string) {
 	delete(arpCache, ipStr)
-}
-
-func main() {
-	err := AddHost("192.168.1.3", "00:1A:2B:3C:4D:60", "Smartphone")
-	if err != nil {
-		fmt.Printf("Error adding host: %v\n", err)
-	}
-
-	for ip, host := range arpCache {
-		fmt.Printf("IP: %s, Host: %+v\n", ip, host)
-	}
 }
