@@ -13,7 +13,7 @@ import (
 // getRouteAndInterface returns the local IP address, route interface, the gateway in use, and any errors during discovery
 func getRoute(targetIP string) (*net.Interface, *net.UDPAddr, error) {
 	// Create a UDP connection to the target IP address to find the route
-	conn, err := net.Dial("udp", targetIP+":80")
+	conn, err := net.Dial("udp", targetIP+"80")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -45,14 +45,14 @@ func getRoute(targetIP string) (*net.Interface, *net.UDPAddr, error) {
 	return nil, localAddr, fmt.Errorf("interface not found for IP: %s", localAddr.IP)
 }
 
-func processARP() {
-
-}
-
-func main() {
-	target := "10.0.4.101"
+func begin_capture() {
+	target := "192.168.7.12"
 	iface, addr, err := getRoute(target)
-	fmt.Printf("Local IP for target %s: %s on interface %s\n", target, addr, iface.Name)
+	if iface == nil {
+		fmt.Printf("Local IP for target %s: %s on interface %s\n", target, addr, "<nil>")
+	} else {
+		fmt.Printf("Local IP for target %s: %s on interface %s\n", target, addr, iface.Name)
+	}
 
 	// Open the network interface for packet capturing
 	handle, err := pcap.OpenLive("epair0b", 1600, true, pcap.BlockForever)
@@ -84,6 +84,12 @@ func main() {
 			fmt.Printf("  Sender Protocol Address: %s\n", net.IP(arp.SourceProtAddress))
 			fmt.Printf("  Target Hardware Address: %s\n", net.HardwareAddr(arp.DstHwAddress))
 			fmt.Printf("  Target Protocol Address: %s\n", net.IP(arp.DstProtAddress))
+			// TODO: maybe do optional rDNS lookups here for the comment.
+			ip := net.IP(arp.SourceProtAddress)
+			ipStr := ip.String()
+			hw := net.HardwareAddr(arp.SourceHwAddress)
+			hwStr := hw.String()
+			AddHost(ipStr, hwStr, "auto-cached")
 		}
 		// Check if this is an ICMP packet
 		if icmpLayer := packet.Layer(layers.LayerTypeICMPv4); icmpLayer != nil {
@@ -94,4 +100,5 @@ func main() {
 			fmt.Println()
 		}
 	}
+
 }
