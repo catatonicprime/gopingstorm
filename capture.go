@@ -13,7 +13,7 @@ import (
 // getRouteAndInterface returns the local IP address, route interface, the gateway in use, and any errors during discovery
 func getRoute(targetIP string) (*net.Interface, *net.UDPAddr, error) {
 	// Create a UDP connection to the target IP address to find the route
-	conn, err := net.Dial("udp", targetIP+"80")
+	conn, err := net.Dial("udp", targetIP+":80")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,8 +63,8 @@ func begin_capture() {
 
 	// Set filter to capture only ICMP packets and ARP packets
 	//TODO: append ' or icmp[0] == 0' to process icmp responses too.
-	//TODO: computer the expected dstIP of our hsot for ICMP echo replies and filter to those.
-	//TODO: compute the expected dstIP of our host for ARP replies and filter to those.
+	//TODO: compute the expected dstIP of our hsot for ICMP echo replies and filter to only those.
+	//TODO: compute the expected dstIP of our host for ARP replies and filter to only those.
 	err = handle.SetBPFFilter("(arp and not ether dst ff:ff:ff:ff:ff:ff)")
 	if err != nil {
 		log.Fatal(err)
@@ -100,5 +100,4 @@ func begin_capture() {
 			fmt.Println()
 		}
 	}
-
 }
