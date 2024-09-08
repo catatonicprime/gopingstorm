@@ -51,16 +51,40 @@ func AddEvent(description string, timestamp time.Time) {
 	arpEvents = append(arpEvents, event)
 }
 
-// AddHost adds a new host record to the arpCache with a timestamp of the time of addition.
-func AddHost(ipStr, macStr, comment string) error {
+// StringToIP returns the net.IP of the IP represented by ipStr or nil and an error.
+func StringToIP(ipStr string) (net.IP, error) {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return fmt.Errorf("invalid IP address: %s", ipStr)
+		return nil, fmt.Errorf("invalid IP address: %s", ipStr)
 	}
+	return ip, nil
+}
 
+// StringToMAC returns the net.HardwareAddr of the MAC represented by macStr or nil and an error.
+func StringToMAC(macStr string) (net.HardwareAddr, error) {
 	mac, err := net.ParseMAC(macStr)
 	if err != nil {
-		return fmt.Errorf("invalid MAC address: %v", err)
+		return nil, fmt.Errorf("invalid MAC address: %v", err)
+	}
+	return mac, nil
+}
+
+// AddHost adds a new host record to the arpCache with a timestamp of the time of addition.
+func AddHost(ipStr, macStr, comment string) []error {
+	var errors []error = make([]error, 0)
+
+	ip, err := StringToIP(ipStr)
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	mac, err := StringToMAC(macStr)
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return errors
 	}
 
 	host := Host{
@@ -88,6 +112,19 @@ func ExpireHosts(since time.Time) {
 			delete(arpCache, key)
 		}
 	}
+}
+
+// Performs an ARP cache lookup and automatically expires the host if needed.
+func ArpCacheLookup(ipStr string, since time.Time) *Host {
+	host, exists := arpCache[ipStr]
+	if !exists {
+		return nil
+	}
+	if host.Timestamp.Before(since) {
+		AddEvent(fmt.Sprintf("Host %s expired prior to lookup", ipStr), time.Now())
+		delete(arpCache, ipStr)
+	}
+	return &host
 }
 
 // DeleteHost deletes a specific host
