@@ -79,11 +79,11 @@ func begin_capture() {
 		// Check if this is an ARP packet
 		if arpLayer := packet.Layer(layers.LayerTypeARP); arpLayer != nil {
 			arp, _ := arpLayer.(*layers.ARP)
-			fmt.Printf("ARP Packet:\n")
-			fmt.Printf("  Sender Hardware Address: %s\n", net.HardwareAddr(arp.SourceHwAddress))
-			fmt.Printf("  Sender Protocol Address: %s\n", net.IP(arp.SourceProtAddress))
-			fmt.Printf("  Target Hardware Address: %s\n", net.HardwareAddr(arp.DstHwAddress))
-			fmt.Printf("  Target Protocol Address: %s\n", net.IP(arp.DstProtAddress))
+			//fmt.Printf("ARP Packet:\n")
+			//fmt.Printf("  Sender Hardware Address: %s\n", net.HardwareAddr(arp.SourceHwAddress))
+			//fmt.Printf("  Sender Protocol Address: %s\n", net.IP(arp.SourceProtAddress))
+			//fmt.Printf("  Target Hardware Address: %s\n", net.HardwareAddr(arp.DstHwAddress))
+			//fmt.Printf("  Target Protocol Address: %s\n", net.IP(arp.DstProtAddress))
 			// TODO: maybe do optional rDNS lookups here for the comment.
 			ip := net.IP(arp.SourceProtAddress)
 			ipStr := ip.String()
