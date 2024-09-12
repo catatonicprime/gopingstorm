@@ -28,9 +28,12 @@ func Display() {
 			time.Sleep(1 * time.Second)
 
 			cacheList := make([]ArpKeyValue, 0)
-			for key, host := range arpCache {
+			globalCache.mutex.RLock()
+			for key, host := range globalCache.cache {
 				cacheList = append(cacheList, ArpKeyValue{Key: key, Value: host})
 			}
+			cacheLength := len(globalCache.cache)
+			globalCache.mutex.RUnlock()
 			sort.Slice(cacheList, func(i, j int) bool {
 				addr1, _ := netip.ParseAddr(cacheList[i].Key)
 				addr2, _ := netip.ParseAddr(cacheList[j].Key)
@@ -41,7 +44,7 @@ func Display() {
 			for _, record := range cacheList {
 				cacheStr += fmt.Sprintf("%-15s: %17s\n", record.Key, record.Value.MAC)
 			}
-			box.SetText(fmt.Sprintf("cache size: %d\n%s", len(arpCache), cacheStr))
+			box.SetText(fmt.Sprintf("cache size: %d\n%s", cacheLength, cacheStr))
 			app.Draw()
 		}
 	}()

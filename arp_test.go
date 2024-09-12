@@ -7,8 +7,7 @@ import (
 )
 
 func setup() {
-	arpCache = make(map[string]Host)
-	arpEvents = make([]Event, 0)
+	arpCache = NewARPCache()
 }
 
 func TestAddHost_InvalidIP(t *testing.T) {
@@ -33,8 +32,9 @@ func TestAddHost_InvalidMAC(t *testing.T) {
 
 func TestAddDeleteHost(t *testing.T) {
 	setup()
-	if len(arpCache) != 0 {
-		t.Errorf("arpCache length is unexpected initial length!\n\tExpected Length: 0\n\tActual Length: %d", len(arpCache))
+	length := arpCache.Length()
+	if length != 0 {
+		t.Errorf("arpCache length is unexpected initial length!\n\tExpected Length: 0\n\tActual Length: %d", length)
 	}
 
 	// Test case 1: Valid inputs
@@ -66,8 +66,9 @@ func TestAddDeleteHost(t *testing.T) {
 	}
 
 	// Ensure we didn't somehow also add a second record
-	if len(arpCache) != 1 {
-		t.Errorf("arpCache length is unexpected length after add!\n\tExpected Length: 1\n\tActual Length: %d", len(arpCache))
+	length = arpCache.Length()
+	if length != 1 {
+		t.Errorf("arpCache length is unexpected length after add!\n\tExpected Length: 1\n\tActual Length: %d", length)
 	}
 
 	// Compare the added host with the expected host
@@ -83,78 +84,9 @@ func TestAddDeleteHost(t *testing.T) {
 	if ok {
 		t.Errorf("Failed to delete host from arpCache!")
 	}
-	if len(arpCache) != 0 {
-		t.Errorf("arpCache length is unexpected length after delete!\n\tExpected Length: 0\n\tActual Length: %d", len(arpCache))
-	}
-}
 
-func TestArpEvents(t *testing.T) {
-	setup()
-	// Assert arpEvents is a 0 length list
-	if len(arpEvents) != 0 {
-		t.Errorf("arpEvents length is unexpected length!\n\tExpected Length: 0\n\tActual Length: %d", len(arpEvents))
-	}
-
-	ipStr := "192.168.1.3"
-	macStr := "00:1A:2B:3C:4D:60"
-	comment := "Smartphone"
-
-	expectedIP := net.ParseIP(ipStr)
-	if expectedIP == nil {
-		t.Fatalf("Invalid test case: could not parse IP %s", ipStr)
-	}
-
-	// Add the same host twice, this should *not* generate an event.
-	err := AddHost(ipStr, macStr, comment)
-	if err != nil {
-		t.Errorf("AddHost returned an error: %v", err)
-	}
-	err = AddHost(ipStr, macStr, comment)
-	if err != nil {
-		t.Errorf("AddHost returned an error: %v", err)
-	}
-	if len(arpEvents) != 0 {
-		t.Errorf("arpEvents length is unexpected length!\n\tExpected Length: 0\n\tActual Length: %d", len(arpEvents))
-	}
-
-	// Add the same host again, but with a new MAC, this *should* generate an event
-	macStr = "00:1A:2B:3C:4D:61"
-	err = AddHost(ipStr, macStr, comment)
-	if err != nil {
-		t.Errorf("AddHost returned an error: %v", err)
-	}
-	if len(arpEvents) != 1 {
-		t.Errorf("arpEvents length is unexpected length!\n\tExpected Length: 1\n\tActual Length: %d", len(arpEvents))
-	}
-}
-
-func TestExpireHosts(t *testing.T) {
-	setup()
-	// Assert arpEvents is a 0 length list
-	if len(arpEvents) != 0 {
-		t.Errorf("arpEvents length is unexpected length!\n\tExpected Length: 0\n\tActual Length: %d", len(arpEvents))
-	}
-
-	ipStr := "192.168.1.3"
-	macStr := "00:1A:2B:3C:4D:60"
-	comment := "Smartphone"
-
-	expectedIP := net.ParseIP(ipStr)
-	if expectedIP == nil {
-		t.Fatalf("Invalid test case: could not parse IP %s", ipStr)
-	}
-
-	// Add the same host twice, this should *not* generate an event.
-	err := AddHost(ipStr, macStr, comment)
-	if err != nil {
-		t.Errorf("AddHost returned an error: %v", err)
-	}
-
-	ExpireHosts(time.Now())
-	if len(arpEvents) != 1 {
-		t.Errorf("arpEvents length is unexpected length!\n\tExpected Length: 1\n\tActual Length: %d", len(arpEvents))
-	}
-	if len(arpCache) != 0 {
-		t.Errorf("arpCache length is unexpected length after expire!\n\tExpected Length: 0\n\tActual Length: %d", len(arpCache))
+	length = arpCache.Length()
+	if length != 0 {
+		t.Errorf("arpCache length is unexpected length after delete!\n\tExpected Length: 0\n\tActual Length: %d", length)
 	}
 }

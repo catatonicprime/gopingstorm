@@ -89,7 +89,7 @@ func begin_capture() {
 			ipStr := ip.String()
 			hw := net.HardwareAddr(arp.SourceHwAddress)
 			hwStr := hw.String()
-			AddHost(ipStr, hwStr, "auto-cached")
+			globalCache.AddHost(ipStr, hwStr, "auto-cached")
 		}
 		// Check if this is an ICMP packet
 		if icmpLayer := packet.Layer(layers.LayerTypeICMPv4); icmpLayer != nil {

@@ -1,12 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"log"
 	"net"
+	"sync"
 	"time"
 )
+
+// globalCache is the cache for the whole process
+var globalCache = NewARPCache()
 
 // Host represents a host on a network.
 type Host struct {
@@ -23,32 +25,26 @@ type Host struct {
 	Comment string
 }
 
-//TODO: Create a lifetime database of hosts observed too.
+// TODO: Create a lifetime database of hosts observed too.
+type ARPCache struct {
+	// RWMutex allows for multiple readers but single writer.
+	mutex sync.RWMutex
 
-// arpCache is the current cache of hosts that has been discovered.
-var arpCache map[string]Host = make(map[string]Host)
-
-// Event represents ARP events like a host changing MAC. In the future additional events
-// such as the initial observeration of a host.
-type Event struct {
-	// Description describes the Event
-	Description string
-
-	// Timestamp is the time the event occurred
-	Timestamp time.Time
+	// Cache is the current cache of hosts that has been discovered.
+	cache map[string]Host
 }
 
-// arpEvents is a list of Events that have occurred.
-var arpEvents []Event = make([]Event, 0)
-
-// AddEvent adds an ARP event ot the arpEvents list and logs the event.
-func AddEvent(description string, timestamp time.Time) {
-	event := Event{
-		Description: description,
-		Timestamp:   timestamp,
+func NewARPCache() *ARPCache {
+	return &ARPCache{
+		cache: make(map[string]Host),
 	}
-	log.Printf(fmt.Sprintf("%s: %s", timestamp.Format(time.RFC3339), event.Description))
-	arpEvents = append(arpEvents, event)
+}
+
+func (cache *ARPCache) Length() int {
+	cache.mutex.RLock()
+	length := len(cache.cache)
+	cache.mutex.RUnlock()
+	return length
 }
 
 // StringToIP returns the net.IP of the IP represented by ipStr or nil and an error.
@@ -69,8 +65,8 @@ func StringToMAC(macStr string) (net.HardwareAddr, error) {
 	return mac, nil
 }
 
-// AddHost adds a new host record to the arpCache with a timestamp of the time of addition.
-func AddHost(ipStr, macStr, comment string) []error {
+// AddHost adds a new host record to the cache with a timestamp of the time of addition. Returns list of errors or nil for success.
+func (cache *ARPCache) AddHost(ipStr, macStr, comment string) []error {
 	var errors []error = make([]error, 0)
 
 	ip, err := StringToIP(ipStr)
@@ -94,40 +90,32 @@ func AddHost(ipStr, macStr, comment string) []error {
 		Timestamp: time.Now(), // TODO: assess if this timestamp should be derived from a packet timestamp instead.
 	}
 
-	// Log changes to arpCache if necessary
-	if currentHost, exists := arpCache[ipStr]; exists && !bytes.Equal(currentHost.MAC, host.MAC) {
-		AddEvent(fmt.Sprintf("Host MAC changed from %s to %s\n", currentHost.MAC, host.MAC), host.Timestamp)
-	}
-
 	//Update the cache regardless
-	arpCache[ipStr] = host
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+	cache.cache[ipStr] = host
 	return nil
 }
 
-// ExpireHosts will delete hosts that are older than the time _since_ from the arpCache.
-func ExpireHosts(since time.Time) {
-	for key, host := range arpCache {
-		if host.Timestamp.Before(since) {
-			AddEvent(fmt.Sprintf("Host %s has expired", key), time.Now())
-			delete(arpCache, key)
-		}
-	}
-}
-
 // Performs an ARP cache lookup and automatically expires the host if needed.
-func ArpCacheLookup(ipStr string, since time.Time) *Host {
-	host, exists := arpCache[ipStr]
+func (cache *ARPCache) Lookup(ipStr string, since time.Time) *Host {
+	cache.mutex.RLock()
+	host, exists := cache.cache[ipStr]
+	cache.mutex.RUnlock()
 	if !exists {
 		return nil
 	}
+	// Expire the host if it should be
 	if host.Timestamp.Before(since) {
-		AddEvent(fmt.Sprintf("Host %s expired prior to lookup", ipStr), time.Now())
-		delete(arpCache, ipStr)
+		cache.DeleteHost(ipStr)
+		return nil
 	}
 	return &host
 }
 
 // DeleteHost deletes a specific host
-func DeleteHost(ipStr string) {
-	delete(arpCache, ipStr)
+func (cache *ARPCache) DeleteHost(ipStr string) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+	delete(cache.cache, ipStr)
 }
