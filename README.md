@@ -1,15 +1,15 @@
-# GoPing (a lot of things!)
-GoPing is a multi-host ICMP monitoring tool. It sends/collects a bunch of packets and related datapoints.
+# gopingstorm
+gopingstorm is a multi-host ICMP monitoring tool. It sends/collects a bunch of packets and related datapoints.
 
 It uses some kind of terminal based UI.
 
 # Build and Test
 go test -v
 
-# Running GoPing
+# Running gopingstorm
 It'll look something like this... obviously I have no idea what I am doing.
 
-go run goping.go CIDR [options...]
+go run gopingstorm.go CIDR [options...]
 
 Options include:
   -a arp_timeout
