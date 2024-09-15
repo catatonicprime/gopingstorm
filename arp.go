@@ -98,19 +98,20 @@ func (cache *ARPCache) AddHost(ipStr, macStr, comment string) []error {
 }
 
 // Performs an ARP cache lookup and automatically expires the host if needed.
-func (cache *ARPCache) Lookup(ipStr string, since time.Time) *Host {
+func (cache *ARPCache) Lookup(ipStr string, since time.Time) (*Host, bool) {
 	cache.mutex.RLock()
 	host, exists := cache.cache[ipStr]
 	cache.mutex.RUnlock()
 	if !exists {
-		return nil
+		return nil, exists
 	}
-	// Expire the host if it should be
+
+	// Expire the host if it is expired
 	if host.Timestamp.Before(since) {
 		cache.DeleteHost(ipStr)
-		return nil
+		return nil, exists
 	}
-	return &host
+	return &host, exists
 }
 
 // DeleteHost deletes a specific host

@@ -7,14 +7,14 @@ import (
 )
 
 func setup() {
-	arpCache = NewARPCache()
+	globalCache = NewARPCache()
 }
 
 func TestAddHost_InvalidIP(t *testing.T) {
 	setup()
 	// Test case 2: Invalid IP
 	invalidIPStr := "invalid_ip_address"
-	err := AddHost(invalidIPStr, "00:1A:2B:3C:4D:60", "Test")
+	err := globalCache.AddHost(invalidIPStr, "00:1A:2B:3C:4D:60", "Test")
 	if err == nil {
 		t.Errorf("AddHost with invalid IP %s did not return an error", invalidIPStr)
 	}
@@ -24,7 +24,7 @@ func TestAddHost_InvalidMAC(t *testing.T) {
 	setup()
 	// Test case 2: Invalid IP
 	invalidMACStr := "invalid_mac_address"
-	err := AddHost("192.168.7.1", invalidMACStr, "Test")
+	err := globalCache.AddHost("192.168.7.1", invalidMACStr, "Test")
 	if err == nil {
 		t.Errorf("AddHost with invalid MAC %s did not return an error", invalidMACStr)
 	}
@@ -32,9 +32,9 @@ func TestAddHost_InvalidMAC(t *testing.T) {
 
 func TestAddDeleteHost(t *testing.T) {
 	setup()
-	length := arpCache.Length()
+	length := globalCache.Length()
 	if length != 0 {
-		t.Errorf("arpCache length is unexpected initial length!\n\tExpected Length: 0\n\tActual Length: %d", length)
+		t.Errorf("globalCache length is unexpected initial length!\n\tExpected Length: 0\n\tActual Length: %d", length)
 	}
 
 	// Test case 1: Valid inputs
@@ -47,7 +47,7 @@ func TestAddDeleteHost(t *testing.T) {
 		t.Fatalf("Invalid test case: could not parse IP %s", ipStr)
 	}
 
-	err := AddHost(ipStr, macStr, comment)
+	err := globalCache.AddHost(ipStr, macStr, comment)
 	if err != nil {
 		t.Errorf("AddHost returned an error: %v", err)
 	}
@@ -60,15 +60,15 @@ func TestAddDeleteHost(t *testing.T) {
 	}
 
 	// Retrieve the added host from the map
-	addedHost, ok := arpCache[ipStr]
+	addedHost, ok := globalCache.Lookup(ipStr, expectedHost.Timestamp.Add(-1*time.Second))
 	if !ok {
 		t.Fatalf("Host with IP %s was not added to the map", ipStr)
 	}
 
 	// Ensure we didn't somehow also add a second record
-	length = arpCache.Length()
+	length = globalCache.Length()
 	if length != 1 {
-		t.Errorf("arpCache length is unexpected length after add!\n\tExpected Length: 1\n\tActual Length: %d", length)
+		t.Errorf("globalCache length is unexpected length after add!\n\tExpected Length: 1\n\tActual Length: %d", length)
 	}
 
 	// Compare the added host with the expected host
@@ -79,14 +79,14 @@ func TestAddDeleteHost(t *testing.T) {
 	}
 
 	// Delete the host too
-	DeleteHost(ipStr)
-	_, ok = arpCache[ipStr]
+	globalCache.DeleteHost(ipStr)
+	_, ok = globalCache.Lookup(ipStr, addedHost.Timestamp.Add(-1*time.Second))
 	if ok {
-		t.Errorf("Failed to delete host from arpCache!")
+		t.Errorf("Failed to delete host from globalCache!")
 	}
 
-	length = arpCache.Length()
+	length = globalCache.Length()
 	if length != 0 {
-		t.Errorf("arpCache length is unexpected length after delete!\n\tExpected Length: 0\n\tActual Length: %d", length)
+		t.Errorf("globalCache length is unexpected length after delete!\n\tExpected Length: 0\n\tActual Length: %d", length)
 	}
 }
