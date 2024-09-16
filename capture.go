@@ -10,11 +10,17 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-func begin_capture() {
+func begin_capture(options Options) {
+	// TODO: Get all the interfaces we need to listen on, each one would be a capture routine
+
+	for i, cidr := range options.TargetCIDR {
+		fmt.Printf("%d, %s\n", i, cidr.String())
+	}
+
 	target := "8.8.8.8"
 	iface, addr, err := getRoute(target)
 	if iface == nil {
-		log.Fatal("Local IP for target %s: %s on interface %s\n", target, addr, "<nil>")
+		log.Fatal(fmt.Sprintf("Local IP for target %s: %s on interface %s\n", target, addr.String(), "<nil>"))
 		return
 	}
 	fmt.Printf("Local IP for target %s: %s on interface %s\n", target, addr, iface.Name)
